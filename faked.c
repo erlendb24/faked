@@ -24,6 +24,15 @@ typedef struct buffer {
  * void change_line
  * */
 
+void print_all(buffer *buffer) {
+    line *line_to_print = buffer->head;
+    while (line_to_print != NULL) {
+        printf("%s", line_to_print->text);
+        line_to_print = line_to_print->next;
+    }
+    printf("\n");
+}
+
 // Insert text into the line before current
 void insert(buffer *buffer) {
     line *new_line = malloc(sizeof(line));
@@ -55,20 +64,21 @@ int main(int argc, char **argv) {
     char *path = argv[1];
     FILE *fp = fopen(path, "r");
     char line_buf[1024];
-    buffer *buffer = malloc(sizeof(buffer));
+    buffer *buffer = malloc(sizeof(struct buffer));
     buffer->head = NULL;
     buffer->current = NULL;
     buffer->is_changed = 0;
-    buffer->filename = path;
+    buffer->filename = strdup(path);
     // remember to strdup the buffer
     while (fgets(line_buf, sizeof(line_buf), fp)) {
-        line *line = malloc(sizeof(line));
+        line *line = malloc(sizeof(struct line));
         char *duped_buf = strdup(line_buf);
         line->prev = NULL;
         line->next = NULL;
         line->text = duped_buf;
         if (buffer->current != NULL) {
             line->prev = buffer->current;
+            buffer->current->next = line;
         }
         if (buffer->head == NULL) {
             buffer->head = line;
@@ -77,6 +87,7 @@ int main(int argc, char **argv) {
     }
 
     char command_buf[1024];
+    print_all(buffer);
     while (1) {
         fgets(command_buf, sizeof(command_buf), stdin);
         argument_parser(command_buf, buffer);
