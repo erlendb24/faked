@@ -67,10 +67,12 @@ void delete_lines(buffer *buffer, int start, int amount) {
 // Insert text into the line before current
 void insert(buffer *buffer) {
     line *new_line = malloc(sizeof(line));
-
+    new_line->next = NULL;
+    new_line->prev = NULL;
     
     // If there is a previous, make new_line's previous that line
     if (buffer->current->prev != NULL) {
+        buffer->current->prev->next = new_line;
         new_line->prev = buffer->current->prev;
     } else {
         // If there is no previous (i.e. current is the only line in the file),
@@ -82,8 +84,9 @@ void insert(buffer *buffer) {
     buffer->current->prev = new_line;
     new_line->next = buffer->current;
 
-    //TODO:
-    //Input handling here?
+    char line_buf[1024];
+    fgets(line_buf, sizeof(line_buf), stdin);
+    new_line->text = strdup(line_buf);
 }
 
 void argument_parser(char *command_buf, buffer *buffer) {
@@ -120,7 +123,9 @@ int main(int argc, char **argv) {
     buffer->tail = buffer->current;
 
     char command_buf[1024];
-    delete_lines(buffer, 1, 3);
+    print_all(buffer);
+    insert(buffer);
+    insert(buffer);
     print_all(buffer);
     while (1) {
         fgets(command_buf, sizeof(command_buf), stdin);
