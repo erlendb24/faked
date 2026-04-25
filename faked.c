@@ -34,8 +34,7 @@ void insert(buffer *buffer) {
         new_line->prev = buffer->current->prev;
     } else {
         // If there is no previous (i.e. current is the only line in the file),
-        // make new line the head of the buffer and make the buffer circular
-        new_line->prev = buffer->current;
+        // make new line the head of the buffer
         buffer->head = new_line;
     }
 
