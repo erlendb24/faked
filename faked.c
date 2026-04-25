@@ -10,6 +10,7 @@ typedef struct line {
 
 typedef struct buffer {
     line *head;
+    line *tail;
     line *current;
     int is_changed;
     char *filename;
@@ -31,6 +32,36 @@ void print_all(buffer *buffer) {
         line_to_print = line_to_print->next;
     }
     printf("\n");
+}
+
+void free_line(line *line) {
+    free(line->text);
+    free(line);
+}
+
+void delete_lines(buffer *buffer, int start, int amount) {
+    // start at one because first line is 1
+    int counter = 1;
+    line *tmp_line = buffer->head;
+    while (counter < start) {
+        tmp_line = tmp_line->next;
+        counter++;
+    }
+
+    for (int i = 0; i < amount; i++) {
+        line *line_to_delete = tmp_line;
+        tmp_line = tmp_line->next;
+        if (line_to_delete->prev != NULL) {
+            line_to_delete->prev->next = tmp_line;
+        } else {
+            buffer->head = tmp_line;
+        }
+        if (tmp_line != NULL) {
+            tmp_line->prev = line_to_delete->prev;
+        }
+        free_line(line_to_delete);
+    }
+    buffer->current = tmp_line;
 }
 
 // Insert text into the line before current
@@ -66,6 +97,7 @@ int main(int argc, char **argv) {
     char line_buf[1024];
     buffer *buffer = malloc(sizeof(struct buffer));
     buffer->head = NULL;
+    buffer->tail = NULL;
     buffer->current = NULL;
     buffer->is_changed = 0;
     buffer->filename = strdup(path);
@@ -85,8 +117,10 @@ int main(int argc, char **argv) {
         }
         buffer->current = line;
     }
+    buffer->tail = buffer->current;
 
     char command_buf[1024];
+    delete_lines(buffer, 1, 3);
     print_all(buffer);
     while (1) {
         fgets(command_buf, sizeof(command_buf), stdin);
