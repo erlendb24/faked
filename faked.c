@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#define NO_ARGS 0
+#define SINGLE_ARG 1
+#define RANGE 2
 
 typedef struct line {
     char *text;
@@ -24,6 +29,41 @@ typedef struct buffer {
  * void save_to_file(buffer)
  * void change_line
  * */
+
+void save_to_file(buffer *buffer) {
+    FILE *fp = fopen(buffer->filename, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "File could not be opened, try again!");
+        return;
+    }
+
+    line *tmp_line = buffer->head;
+    while (tmp_line != NULL) {
+        fputs(tmp_line->text, fp);
+        tmp_line = tmp_line->next;
+    }
+    fclose(fp);
+}
+
+int find_current(buffer *buffer) {
+    line *tmp_line = buffer->head;
+    int counter = 1;
+    while (tmp_line != buffer->current) {
+        tmp_line = tmp_line->next;
+        counter++;
+    }
+    return counter;
+}
+
+int find_tail(buffer *buffer) {
+    line *tmp_line = buffer->head;
+    int counter = 1;
+    while (tmp_line != buffer->tail) {
+        tmp_line = tmp_line->next;
+        counter++;
+    }
+    return counter;
+}
 
 void print_all(buffer *buffer) {
     line *line_to_print = buffer->head;
@@ -89,9 +129,73 @@ void insert(buffer *buffer) {
     new_line->text = strdup(line_buf);
 }
 
+void resolve_change_and_delete(buffer *buffer, char type, int args[2], int address_space) {
+    if (address_space == SINGLE_ARG) {
+        delete_lines(buffer, args[0], SINGLE_ARG);
+    } else if (address_space == RANGE) {
+        delete_lines(buffer, args[0], (args[1] - args[0]) + 1);
+    } else {
+        delete_lines(buffer, find_current(buffer), 1);
+    }
+
+    if (type == 'c') {
+        insert(buffer);
+    }
+}
+
 void argument_parser(char *command_buf, buffer *buffer) {
-    // TODO:
-    // argument_parser
+    int args[2] = { 0 };
+    int arg_counter = 0;
+    char command = 0;
+    int address_space = SINGLE_ARG;
+    for (int i = 0; command_buf[i] != '\0'; i++) {
+        if (!isalpha(command_buf[i])) {
+            if (isdigit(command_buf[i])) {
+                int num = command_buf[i] - '0';
+                args[arg_counter] = args[arg_counter] * 10 + num;
+            }
+            if (command_buf[i] == '$') {
+                args[arg_counter] = find_tail(buffer);
+            }
+            if (command_buf[i] == '.') {
+                args[arg_counter] = find_current(buffer);
+            }
+
+            if (command_buf[i] == ',') {
+                address_space = RANGE;
+                arg_counter++;
+            }
+        } else {
+            command = command_buf[i];
+            if (i == 0) {
+                address_space = NO_ARGS;
+            }
+        }
+    }
+
+    switch (command) {
+        case 'd':
+            resolve_change_and_delete(buffer, 'd', args, address_space);
+            break;
+        case 'c':
+            resolve_change_and_delete(buffer, 'c', args, address_space);
+            break;
+        case 'i':
+            insert(buffer);
+            break;
+        case 'P':
+            print_all(buffer);
+            break;
+        case 'p':
+            printf("%s\n",buffer->current->text);
+            break;
+        case 'w':
+            save_to_file(buffer);
+            break;
+        default:
+            //error handle
+            break;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -122,11 +226,8 @@ int main(int argc, char **argv) {
     }
     buffer->tail = buffer->current;
 
+    fclose(fp);
     char command_buf[1024];
-    print_all(buffer);
-    insert(buffer);
-    insert(buffer);
-    print_all(buffer);
     while (1) {
         fgets(command_buf, sizeof(command_buf), stdin);
         argument_parser(command_buf, buffer);
