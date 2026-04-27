@@ -55,6 +55,17 @@ int find_current(buffer *buffer) {
     return counter;
 }
 
+void set_current(buffer *buffer, int line_nr) {
+    line *tmp_line = buffer->head;
+    int counter = 0;
+    while (counter < line_nr) {
+        tmp_line = tmp_line->next;
+        counter++;
+    }
+
+    buffer->current = tmp_line;
+}
+
 int find_tail(buffer *buffer) {
     line *tmp_line = buffer->head;
     int counter = 1;
@@ -80,6 +91,7 @@ void free_line(line *line) {
 }
 
 void delete_lines(buffer *buffer, int start, int amount) {
+    buffer->is_changed = 1;
     // start at one because first line is 1
     int counter = 1;
     line *tmp_line = buffer->head;
@@ -106,10 +118,21 @@ void delete_lines(buffer *buffer, int start, int amount) {
 
 // Insert text into the line before current
 void insert(buffer *buffer) {
+    buffer->is_changed = 1;
     line *new_line = malloc(sizeof(line));
     new_line->next = NULL;
     new_line->prev = NULL;
-    
+    char line_buf[1024];
+    fgets(line_buf, sizeof(line_buf), stdin);
+    new_line->text = strdup(line_buf);
+
+    if (buffer->current == NULL) {
+        buffer->current = new_line;
+        buffer->tail->next = new_line;
+        new_line->prev = buffer->tail;
+        buffer->tail = new_line;
+        return;
+    }
     // If there is a previous, make new_line's previous that line
     if (buffer->current->prev != NULL) {
         buffer->current->prev->next = new_line;
@@ -123,10 +146,6 @@ void insert(buffer *buffer) {
     // Set current's previous to new_line and new_line's next to current
     buffer->current->prev = new_line;
     new_line->next = buffer->current;
-
-    char line_buf[1024];
-    fgets(line_buf, sizeof(line_buf), stdin);
-    new_line->text = strdup(line_buf);
 }
 
 void resolve_change_and_delete(buffer *buffer, char type, int args[2], int address_space) {
@@ -141,6 +160,37 @@ void resolve_change_and_delete(buffer *buffer, char type, int args[2], int addre
     if (type == 'c') {
         insert(buffer);
     }
+}
+
+void resolve_current_for_append(buffer *buffer, int args[2], int address_space) {
+    if (address_space == SINGLE_ARG) {
+        if (args[0] != '$' || args[0] != '.') {
+            set_current(buffer, args[0]);
+        } else {
+            if (args[0] == '$') {
+                buffer->current = buffer->tail->next;
+            }
+            if (args[0] == '$') {
+                // sets current to line after current, so you append after
+                set_current(buffer, find_current(buffer) + 1);
+            }
+        }
+    }
+}
+
+void handle_unsaved(buffer *buffer) {
+    char line_buf[1024];
+
+    if (buffer->is_changed == 1) {
+        printf("%s", "Unsaved changes! Are you sure? [Y/N]\n");
+        fgets(line_buf, sizeof(line_buf), stdin);
+        if (line_buf[0] == 'Y') {
+            exit(EXIT_SUCCESS);
+        } else {
+            return;
+        }
+    }
+
 }
 
 void argument_parser(char *command_buf, buffer *buffer) {
@@ -183,6 +233,10 @@ void argument_parser(char *command_buf, buffer *buffer) {
         case 'i':
             insert(buffer);
             break;
+        case 'a':
+            resolve_current_for_append(buffer, args, address_space);
+            insert(buffer);
+            break;
         case 'P':
             print_all(buffer);
             break;
@@ -192,6 +246,8 @@ void argument_parser(char *command_buf, buffer *buffer) {
         case 'w':
             save_to_file(buffer);
             break;
+        case 'q':
+            handle_unsaved(buffer);
         default:
             //error handle
             break;
