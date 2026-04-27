@@ -10,10 +10,11 @@ Run by typing ```faked [file]```
 - ```d``` deletes the current line (delete)  
 - ```a``` inserts after the current line (append)  
 - ```c``` deletes current line and inserts where it was (change)  
-- ```P``` print the whole buffer  
-- ```p``` print the current line  
-- ```w``` saves to opened file  
-- ```s``` substitutes substring for another ```s/[pattern]/[replace]/```  
+- ```j``` jumps the current line to whichever line you specify (jump)  
+- ```P``` print the whole buffer (print_all)  
+- ```p``` print the current line (print)  
+- ```w``` saves to opened file (write)  
+- ```s``` substitutes substring for another ```s/[pattern]/[replace]/``` (substitute)  
 
 ## Addresses:
 
@@ -27,6 +28,7 @@ You can use adresses for line numbers in ed.
 ### Commands that can be adressed  
 
 - ```a``` can have no argument or single line number as argument (appends after number)
+- ```j``` can have no argument or single line number as argument (jumps to line number)
 - ```d``` can have no argument, single line number as argument, or a range
 - ```c``` can have no argument, single line number as argument, or a range
 - ```p``` can have no argument, single line number as argument, or a range
