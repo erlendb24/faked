@@ -28,6 +28,7 @@ You can use adresses for line numbers in ed.
 - ```a``` can have no argument or single line number as argument (appends after number)
 - ```d``` can have no argument, single line number as argument, or a range
 - ```c``` can have no argument, single line number as argument, or a range
+- ```p``` can have no argument, single line number as argument, or a range
 
 ### Examples of adressing:  
 
@@ -37,4 +38,6 @@ You can use adresses for line numbers in ed.
 
 ```1,$c``` deletes every line between the first and last, and puts you into insert  
 
-```.,$c``` deletes every line between the current and last, and puts you into insert  
+```.,$p``` prints every line between the current and last  
+
+```,p``` prints every line  
