@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <regex.h>
 
 #define NO_ARGS 0
 #define SINGLE_ARG 1
@@ -226,42 +225,11 @@ void handle_unsaved(buffer *buffer) {
     }
 }
 
-void subsititute_word(buffer *buffer, char *pattern, char *replace) {
-    char *old_string = buffer->current->text;
-    regex_t regex;
-    regmatch_t pmatch;
-
-    regcomp(&regex, pattern, REG_EXTENDED);
-    if (regexec(&regex, old_string, 1, &pmatch, 0) != 0) {
-        printf("No match!\n");
-        return;
-    }
-    char *new_string = malloc(strlen(old_string) - 
-                              (pmatch.rm_eo -
-                              pmatch.rm_so) + strlen(replace) + 1);
-    memcpy(new_string, old_string, pmatch.rm_eo);
-    memcpy(new_string + pmatch.rm_so, replace, strlen(replace));
-    memcpy(new_string + pmatch.rm_so + strlen(replace), 
-           old_string + pmatch.rm_eo, 
-           strlen(old_string) - pmatch.rm_eo);
-    new_string[strlen(old_string) - 
-              (pmatch.rm_eo - pmatch.rm_so) + 
-               strlen(replace)] = '\0';
-    free(buffer->current->text);
-    buffer->current->text = NULL;
-    buffer->current->text = new_string;
-    regfree(&regex);
-}
-
 void argument_parser(char *command_buf, buffer *buffer) {
     int args[2] = { 0 };
     int arg_counter = 0;
     char command = 0;
     int address_space = SINGLE_ARG;
-
-    char *token;
-    char *tmp = command_buf;
-    char *strings[2] = { 0 };
     for (int i = 0; command_buf[i] != '\0'; i++) {
         if (!isalpha(command_buf[i])) {
             if (isdigit(command_buf[i])) {
@@ -281,21 +249,11 @@ void argument_parser(char *command_buf, buffer *buffer) {
             }
         } else {
             command = command_buf[i];
-            int token_count = 0;
-            tmp++;
-            if (command == 's') {
-                while ((token = strsep(&tmp, "/")) != NULL) {
-                    if (*token) {
-                        strings[token_count++] = token;
-                    }
-                }
-            }
             if (i == 0) {
                 address_space = NO_ARGS;
             }
         }
     }
-
 
     switch (command) {
         case 'd':
@@ -317,16 +275,13 @@ void argument_parser(char *command_buf, buffer *buffer) {
         case 'p':
             resolve_print(buffer, args, address_space, arg_counter);
             break;
-        case 's':
-            subsititute_word(buffer, strings[0], strings[1]);
-            break;
         case 'w':
             save_to_file(buffer);
             break;
         case 'q':
             handle_unsaved(buffer);
         default:
-            printf("Command: %s is not recognized\n", command_buf);
+            printf("Command: %s is not recognized", command_buf);
             break;
     }
 }
