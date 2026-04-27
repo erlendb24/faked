@@ -85,6 +85,22 @@ void print_all(buffer *buffer) {
     printf("\n");
 }
 
+void print_lines(buffer *buffer, int start, int amount) {
+    int counter = 1;
+    line *tmp_line = buffer->head;
+    while (counter < start) {
+        tmp_line = tmp_line->next;
+        counter++;
+    }
+    for (int i = 0; i < amount; i++) {
+        while (tmp_line != NULL) {
+            printf("%s", tmp_line->text);
+            tmp_line = tmp_line->next;
+        }
+    }
+    printf("\n");
+}
+
 void free_line(line *line) {
     free(line->text);
     free(line);
@@ -164,17 +180,32 @@ void resolve_change_and_delete(buffer *buffer, char type, int args[2], int addre
 
 void resolve_current_for_append(buffer *buffer, int args[2], int address_space) {
     if (address_space == SINGLE_ARG) {
-        if (args[0] != '$' || args[0] != '.') {
+        if (args[0] != find_tail(buffer) || args[0] != find_current(buffer)) {
             set_current(buffer, args[0]);
         } else {
-            if (args[0] == '$') {
+            if (args[0] == find_tail(buffer)) {
                 buffer->current = buffer->tail->next;
             }
-            if (args[0] == '$') {
+            if (args[0] == find_current(buffer)) {
                 // sets current to line after current, so you append after
-                set_current(buffer, find_current(buffer) + 1);
+                set_current(buffer, args[0] + 1);
             }
         }
+    }
+}
+
+void resolve_print(buffer *buffer, int args[2], int address_space, int arg_amount) {
+    if (address_space == RANGE) {
+        // if its 1, it has to be ',p' which prints all lines
+        if (arg_amount > 1) {
+            print_lines(buffer, args[0], (args[1] - args[0]) + 1);
+        } else {
+            print_all(buffer);
+        }
+    } else if (address_space == SINGLE_ARG) {
+        print_lines(buffer, args[0], SINGLE_ARG);
+    } else {
+        printf("%s", buffer->current->text);
     }
 }
 
@@ -189,8 +220,9 @@ void handle_unsaved(buffer *buffer) {
         } else {
             return;
         }
+    } else {
+        exit(EXIT_SUCCESS);
     }
-
 }
 
 void argument_parser(char *command_buf, buffer *buffer) {
@@ -241,7 +273,7 @@ void argument_parser(char *command_buf, buffer *buffer) {
             print_all(buffer);
             break;
         case 'p':
-            printf("%s\n",buffer->current->text);
+            resolve_print(buffer, args, address_space, arg_counter);
             break;
         case 'w':
             save_to_file(buffer);
@@ -249,7 +281,7 @@ void argument_parser(char *command_buf, buffer *buffer) {
         case 'q':
             handle_unsaved(buffer);
         default:
-            //error handle
+            printf("Command: %s is not recognized", command_buf);
             break;
     }
 }
