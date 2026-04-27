@@ -13,6 +13,7 @@ Run by typing ```faked [file]```
 - ```P``` print the whole buffer  
 - ```p``` print the current line  
 - ```w``` saves to opened file  
+- ```s``` substitutes substring for another ```s/[pattern]/[replace]/```  
 
 ## Addresses:
 
