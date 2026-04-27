@@ -31,6 +31,20 @@ typedef struct buffer {
  * void change_line
  * */
 
+line *traverse_to_x(buffer *buffer, int x) {
+    int counter = 1;
+    line *tmp_line = buffer->head;
+    while (counter < x) {
+        if (tmp_line->next != NULL) {
+            tmp_line = tmp_line->next;
+            counter++;
+        } else {
+            break;
+        }
+    }
+    return tmp_line;
+}
+
 void save_to_file(buffer *buffer) {
     FILE *fp = fopen(buffer->filename, "w");
     if (fp == NULL) {
@@ -43,6 +57,7 @@ void save_to_file(buffer *buffer) {
         fputs(tmp_line->text, fp);
         tmp_line = tmp_line->next;
     }
+    buffer->is_changed = 0;
     fclose(fp);
 }
 
@@ -57,13 +72,7 @@ int find_current(buffer *buffer) {
 }
 
 void set_current(buffer *buffer, int line_nr) {
-    line *tmp_line = buffer->head;
-    int counter = 0;
-    while (counter < line_nr) {
-        tmp_line = tmp_line->next;
-        counter++;
-    }
-
+    line *tmp_line = traverse_to_x(buffer, line_nr);
     buffer->current = tmp_line;
 }
 
@@ -87,12 +96,8 @@ void print_all(buffer *buffer) {
 }
 
 void print_lines(buffer *buffer, int start, int amount) {
-    int counter = 1;
-    line *tmp_line = buffer->head;
-    while (counter < start) {
-        tmp_line = tmp_line->next;
-        counter++;
-    }
+    line *tmp_line = traverse_to_x(buffer, start);
+
     for (int i = 0; i < amount; i++) {
         while (tmp_line != NULL) {
             printf("%s", tmp_line->text);
@@ -110,12 +115,7 @@ void free_line(line *line) {
 void delete_lines(buffer *buffer, int start, int amount) {
     buffer->is_changed = 1;
     // start at one because first line is 1
-    int counter = 1;
-    line *tmp_line = buffer->head;
-    while (counter < start) {
-        tmp_line = tmp_line->next;
-        counter++;
-    }
+    line *tmp_line = traverse_to_x(buffer, start);
 
     for (int i = 0; i < amount; i++) {
         line *line_to_delete = tmp_line;
@@ -250,6 +250,7 @@ void subsititute_word(buffer *buffer, char *pattern, char *replace) {
     free(buffer->current->text);
     buffer->current->text = NULL;
     buffer->current->text = new_string;
+    buffer->is_changed = 1;
     regfree(&regex);
 }
 
@@ -325,6 +326,11 @@ void argument_parser(char *command_buf, buffer *buffer) {
             break;
         case 'q':
             handle_unsaved(buffer);
+        case 'j':
+            if (address_space == SINGLE_ARG) {
+                buffer->current = traverse_to_x(buffer, args[0]);
+            }
+            break;
         default:
             printf("Command: %s is not recognized\n", command_buf);
             break;
